@@ -81,7 +81,7 @@ export async function createViewer(canvas) {
   const residual = new THREE.Line(residualGeometry, new THREE.LineDashedMaterial({color: '#f2a366', dashSize: .012, gapSize: .009, transparent: true, opacity: .8}));
   scene.add(residual);
   const pathGeometry = new THREE.BufferGeometry();
-  const pathPositions = new Float32Array(402 * 3);
+  const pathPositions = new Float32Array(1002 * 3);
   pathGeometry.setAttribute('position', new THREE.BufferAttribute(pathPositions, 3));
   pathGeometry.setDrawRange(0, 0);
   const path = new THREE.Line(pathGeometry, new THREE.LineBasicMaterial({color: '#7bebc0', transparent: true, opacity: .7}));
@@ -92,7 +92,7 @@ export async function createViewer(canvas) {
   frames.add(new THREE.AxesHelper(.12));
   scene.add(frames);
   const axes = Array.from({length: 7}, () => new THREE.AxesHelper(.065));
-  let robot = null, focused = false, lastIteration = -1, count = 0, lastPoint = null;
+  let robot = null, focused = false, lastIteration = -1, count = 0, lastPoint = null, recordedPath = null;
   function resetCamera(focus = false) {
     focused = focus;
     controls.target.set(...(focus ? [.15, .19, .10] : [0, 0, -.20]));
@@ -137,10 +137,16 @@ export async function createViewer(canvas) {
     const p = residualGeometry.attributes.position;
     p.setXYZ(0, ...point); p.setXYZ(1, ...target); p.needsUpdate = true;
     residualGeometry.computeBoundingSphere(); residual.computeLineDistances();
+    if (recordedPath) {
+      count = Math.min(iteration + 1, recordedPath.length);
+      for (let i = 0; i < count; i++) pathPositions.set(recordedPath[i], i * 3);
+      pathGeometry.attributes.position.needsUpdate = true; pathGeometry.setDrawRange(0, count);
+    } else {
     if (iteration < lastIteration || iteration === 0) { count = 0; lastPoint = null; }
-    if ((!lastPoint || point.some((x, i) => Math.abs(x - lastPoint[i]) > 1e-10)) && count < 402) {
+    if ((!lastPoint || point.some((x, i) => Math.abs(x - lastPoint[i]) > 1e-10)) && count < 1002) {
       pathPositions.set(point, count++ * 3); lastPoint = point;
       pathGeometry.attributes.position.needsUpdate = true; pathGeometry.setDrawRange(0, count);
+    }
     }
     lastIteration = iteration;
     renderer.shadowMap.needsUpdate = true;
@@ -160,6 +166,7 @@ export async function createViewer(canvas) {
     camera.position.copy(controls.target).add(delta); controls.update(); render();
   }
   return {update, zoom, focus: () => {resetCamera(!focused); return focused;},
+    setTrajectory: trajectory => {recordedPath = trajectory ? trajectory.map(q => forward(q).p) : null; count = 0; lastPoint = null; pathGeometry.setDrawRange(0, 0);},
     reset: () => resetCamera(false),
     setFrames: enabled => {frames.visible = enabled; axes.forEach(a => a.visible = enabled); toolAxes.visible = enabled; render();},
     setPath: enabled => {path.visible = enabled; render();}};

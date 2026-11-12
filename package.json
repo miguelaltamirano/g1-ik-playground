@@ -1,1 +1,1 @@
-{"name":"g1-pinocchio-lab","private":true,"type":"module","scripts":{"check":"node qa/check.mjs && node qa/check-viewer.mjs"}}
+{"name":"g1-ik-playground","private":true,"type":"module","scripts":{"check":"node qa/check.mjs && node qa/check-viewer.mjs && python3 qa/check_python.py"}}

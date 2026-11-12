@@ -29,8 +29,19 @@ jobs:
           node --check dist/kinematics.js
           node --check dist/lessons.js
           node --check dist/viewer.js
+          node --check dist/guide.js
+          node --check dist/python-runner.js
+          node --check dist/python-worker.js
           node qa/check.mjs
           node qa/check-viewer.mjs
+      - name: Set up Python for solver checks
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Check editable Python examples
+        run: |
+          python -m pip install numpy==2.2.6
+          python qa/check_python.py
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload static website
